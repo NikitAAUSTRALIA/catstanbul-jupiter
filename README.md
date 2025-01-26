@@ -1,2 +1,0 @@
-# catstanbul-jupiter
-catstanbul-jupiter
