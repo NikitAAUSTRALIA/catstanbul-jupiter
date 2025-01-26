@@ -19,7 +19,9 @@ app.post("/donate", async (req, res) => {
 
     try {
         // Логика работы с Solana Web3
+        console.log("ХУЯКА")
         const connection = new Connection("https://api.mainnet-beta.solana.com");
+        console.log("ПЕНИСЫ")
         const transaction = new Transaction();
         const resp = await window.solana.connect(); // Запрос подключения кошелька
         const publicKey = resp.publicKey.toString();
