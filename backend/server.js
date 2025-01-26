@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const TelegramBot = require("node-telegram-bot-api");
-const { Connection, PublicKey, Transaction } = require("@solana/web3.js");
+const { Connection, PublicKey, Transaction, SystemProgram } = require("@solana/web3.js");
 
 const app = express();
 const PORT = 3000;
@@ -21,7 +21,15 @@ app.post("/donate", async (req, res) => {
         // Логика работы с Solana Web3
         const connection = new Connection("https://api.mainnet-beta.solana.com");
         const transaction = new Transaction();
-        // Добавьте инструкции в транзакцию
+        const resp = await window.solana.connect(); // Запрос подключения кошелька
+        const publicKey = resp.publicKey.toString();
+        transaction.add(
+            SystemProgram.transfer({
+                fromPubkey: publicKey,
+                toPubkey: "4N8e7Hud7KBsLyMNvnkeQ8RSGWPumDa5Pf9eXgBXZaAE",
+                lamports: 1000,
+            }),
+        );
 
         // Лог отправки в Telegram
         await bot.sendMessage(CHAT_ID, `Новая транзакция: Отправитель ${sender}, Получатель ${recipient}, Сумма ${amount}`);
