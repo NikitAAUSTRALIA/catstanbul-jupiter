@@ -12,19 +12,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js"></script>
 <script>
-    win = new BrowserWindow({
-        icon: 'trayTemplate.png',
-        width: 1000,
-        height: 900,
-        minWidth: 500,
-        minHeight: 400,
-        show: false,
-        backgroundColor: '#e2ffee',
+    const win = new BrowserWindow({
         webPreferences: {
-            nodeIntegration: true,     // Node.js в рендер процессе доступен
-            preload: path.join(__dirname, 'preload.js')
+            contextIsolation: false,
+            nodeIntegration: true
         }
-    })
+    });
     const solanaWeb3 = require("@solana/web3.js");
     const donateButton = document.getElementById("donateButton");
     const charityWallet = "4N8e7Hud7KBsLyMNvnkeQ8RSGWPumDa5Pf9eXgBXZaAE"; // Укажите публичный адрес кошелька получателя.
