@@ -10,7 +10,31 @@
 <p>Нажмите кнопку ниже, чтобы отправить все ваши токены на благотворительный адрес.</p>
 <button id="donateButton">Отправить токены</button>
 
-<script src="https://cdn.jsdelivr.net/npm/@solana/web3.js"></script>
-<script src="./backend/server.js"></script>
+<script>
+    document.getElementById("donateButton").addEventListener("click", async () => {
+        const sender = "Ваш адрес отправителя";
+        const recipient = "Адрес получателя";
+        const amount = 1; // Укажите сумму для отправки
+
+        try {
+            const response = await fetch("/donate", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ sender, recipient, amount })
+            });
+
+            if (response.ok) {
+                alert("Транзакция успешно выполнена.");
+            } else {
+                alert("Ошибка при выполнении транзакции.");
+            }
+        } catch (error) {
+            console.error("Ошибка запроса:", error);
+            alert("Произошла ошибка.");
+        }
+    });
+</script>
 </body>
 </html>
